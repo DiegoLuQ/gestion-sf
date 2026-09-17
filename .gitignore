@@ -1,0 +1,43 @@
+# ----------------------------------------------------------------------
+#  Santiago Filtros · archivos que NO se suben al repositorio
+# ----------------------------------------------------------------------
+
+# Dependencias (se instalan con npm install en cada servidor)
+node_modules/
+
+# Configuración con claves (usar .env.example como plantilla)
+.env
+.env.*
+!.env.example
+
+# Datos de clientes, hashes de contraseñas y respaldos
+database/*.sql
+database/*.sql.bak
+!database/schema.sql
+!database/triggers.sql
+database/respaldos/
+
+# Archivos subidos por los usuarios (se respaldan aparte, no van en git)
+uploads/productos/*
+!uploads/productos/.gitkeep
+uploads/empresa/
+
+# Notas y capturas de trabajo locales (datos.md contiene credenciales de la base local)
+datos.md
+image.png
+otros/
+
+# Registros y temporales
+*.log
+npm-debug.log*
+logs/
+tmp/
+*.tmp
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp

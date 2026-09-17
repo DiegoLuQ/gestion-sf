@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Santiago Filtros · Gestión</title>
+  <meta name="theme-color" content="#0f2a47">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230f2a47'/%3E%3Cpath d='M6 6h12l-4.5 6v4.5l-3 1.5v-6z' fill='%23f2b705'/%3E%3C/svg%3E">
+  <script>
+    try {
+      var t = localStorage.getItem('sf-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.dataset.theme = t;
+    } catch (e) { document.documentElement.dataset.theme = 'light'; }
+  </script>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="icon-btn" data-menu-toggle aria-label="Mostrar u ocultar menú lateral"></button>
+    <a class="brand" href="#/">
+      <span class="brand-mark"></span>
+      <span><span data-brand-name>Santiago Filtros</span><small data-brand-slogan>Sistema de gestión</small></span>
+    </a>
+    <div class="crumbs"></div>
+    <div class="topbar-spacer"></div>
+    <nav class="topnav" aria-label="Accesos rápidos"></nav>
+    <button class="icon-btn" data-theme-toggle aria-label="Cambiar tema claro u oscuro"></button>
+    <div class="user-menu"></div>
+  </header>
+
+  <aside class="sidebar" id="sidebar" aria-label="Menú principal">
+    <div class="sidebar-head"><span data-brand-name>Santiago Filtros</span> <button class="icon-btn sm" data-sidebar-close aria-label="Cerrar menú"></button></div>
+    <nav></nav>
+    <div class="sidebar-foot" data-brand-name>Santiago Filtros</div>
+  </aside>
+  <div class="overlay"></div>
+
+  <main class="main" id="view">
+    <div class="page"><div class="card table-state"><span class="spinner"></span></div></div>
+  </main>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
