@@ -14,11 +14,14 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import mysql from 'mysql2/promise';
 import { exportarBase } from '../database/exportador.js';
+import { readSqlStatements, tableExists } from '../database/sql-utils.js';
 import { COMMON_OPTIONS, connectionConfig } from './db.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MIGRATIONS_DIR = path.join(ROOT, 'database', 'migraciones');
 const BACKUP_DIR = path.join(ROOT, 'database', 'respaldos');
+const SCHEMA_SQL = path.join(ROOT, 'database', 'schema.sql');
+const TRIGGERS_SQL = path.join(ROOT, 'database', 'triggers.sql');
 const KEEP_BACKUPS = 10;
 
 const TRACKING_TABLE_SQL = `CREATE TABLE IF NOT EXISTS sf_migraciones (
@@ -45,6 +48,35 @@ const stamp = () => new Date().toISOString().replace(/[-:]/g, '').replace('T', '
 async function pruneBackups(database) {
   const files = (await fs.readdir(BACKUP_DIR)).filter(f => f.startsWith(`${database}_`) && f.endsWith('.sql')).sort();
   for (const old of files.slice(0, Math.max(0, files.length - KEEP_BACKUPS))) await fs.unlink(path.join(BACKUP_DIR, old));
+}
+
+/**
+ * Crea las vistas y triggers de la estructura v2 que falten en la base.
+ * Pasa cuando una importación desde phpMyAdmin falla a mitad (p. ej. #1227 por DEFINER):
+ * las tablas y sf_migraciones quedan, pero las vistas o triggers no.
+ * No detiene el arranque: si MySQL rechaza algo, se informa en el log.
+ */
+async function repararObjetos(conn, log) {
+  if (!(await tableExists(conn, 'sf_salida_productos'))) return;
+  const [views] = await conn.query("SELECT TABLE_NAME AS name FROM information_schema.VIEWS WHERE TABLE_SCHEMA = DATABASE()");
+  const [triggers] = await conn.query('SELECT TRIGGER_NAME AS name FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE()');
+  const existing = new Set([...views, ...triggers].map(r => r.name.toLowerCase()));
+
+  const statements = [...await readSqlStatements(SCHEMA_SQL), ...await readSqlStatements(TRIGGERS_SQL)];
+  for (const stmt of statements) {
+    const match = stmt.match(/^\s*CREATE\s+(VIEW|TRIGGER)\s+`?(\w+)`?/i);
+    if (!match || existing.has(match[2].toLowerCase())) continue;
+    const [, type, name] = match;
+    try {
+      await conn.query(stmt);
+      log(`Reparado: ${type.toLowerCase() === 'view' ? 'vista' : 'trigger'} ${name} no existía y se creó.`);
+      if (type.toUpperCase() === 'TRIGGER') {
+        log('  Aviso: si se registraron salidas mientras faltaba este trigger, revisa el stock de esos productos.');
+      }
+    } catch (err) {
+      log(`No se pudo crear ${name}: ${err.message}`);
+    }
+  }
 }
 
 /**
@@ -83,6 +115,7 @@ export async function migrar({ respaldo = true, soloEstado = false, log = consol
 
     if (!pending.length) {
       log(`Base ${cfg.database} al día (${applied.size} migraciones aplicadas).`);
+      await repararObjetos(conn, log);
       return { aplicadas: [], pendientes: [], respaldo: null };
     }
 
@@ -113,6 +146,7 @@ export async function migrar({ respaldo = true, soloEstado = false, log = consol
         throw err;
       }
     }
+    await repararObjetos(conn, log);
     return { aplicadas: done, pendientes: [], respaldo: backupFile };
   } finally {
     if (locked) await conn.query('SELECT RELEASE_LOCK(?)', [lockName]).catch(() => {});

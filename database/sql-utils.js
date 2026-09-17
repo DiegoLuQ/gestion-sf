@@ -1,10 +1,11 @@
 // Utilidades SQL compartidas por las migraciones y la exportación.
 import fs from 'node:fs/promises';
 
-// Ejecuta un archivo .sql respetando las líneas DELIMITER del cliente mysql.
-export async function runSqlFile(conn, file) {
+// Lee un archivo .sql y lo separa en sentencias, respetando las líneas DELIMITER del cliente mysql.
+export async function readSqlStatements(file) {
   let delimiter = ';';
   let buf = [];
+  const statements = [];
   for (const line of (await fs.readFile(file, 'utf8')).split(/\r?\n/)) {
     const stripped = line.trim();
     if (/^DELIMITER\s/i.test(stripped)) { delimiter = stripped.split(/\s+/)[1]; continue; }
@@ -12,10 +13,16 @@ export async function runSqlFile(conn, file) {
     buf.push(line);
     if (stripped.endsWith(delimiter)) {
       const stmt = buf.join('\n').trimEnd().slice(0, -delimiter.length);
-      if (stmt.trim()) await conn.query(stmt);
+      if (stmt.trim()) statements.push(stmt);
       buf = [];
     }
   }
+  return statements;
+}
+
+// Ejecuta un archivo .sql completo.
+export async function runSqlFile(conn, file) {
+  for (const stmt of await readSqlStatements(file)) await conn.query(stmt);
 }
 
 export async function tableExists(conn, table) {
