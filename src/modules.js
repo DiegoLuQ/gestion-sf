@@ -9,6 +9,8 @@
  * Tipos de campo: text, textarea, int, money, decimal, date, datetime, email,
  * rut, url, enum, fk, bool, password, image.
  * singleton: true indica una tabla de una sola fila (se edita, no se crea ni elimina).
+ * noCreate: true impide crear registros desde la plataforma (llegan por otra vía, p. ej. el enlace de cotización).
+ * hidden: true deja el módulo fuera del menú (se usa solo como detalle de otro).
  * En labelSql y en extras, {a} es el alias de la tabla.
  */
 
@@ -57,6 +59,8 @@ export const MODULES = {
       }),
       F('prod_fecha', 'Fecha de ingreso', 'date', { required: true, default: 'today' }),
     ],
+    // Botones de la cabecera del listado que abren una herramienta propia (frontend/js/<tool>.js).
+    pageActions: [{ label: 'Catálogo', icon: 'book', tool: 'catalogo', roles: [ADMIN] }],
     extras: [X('margen_pct', 'Margen %',
       'ROUND((CAST(t.prod_venta AS SIGNED) - CAST(t.prod_costo AS SIGNED)) / NULLIF(t.prod_venta, 0) * 100, 1)', 'decimal', { hideMd: true })],
   },
@@ -240,6 +244,72 @@ export const MODULES = {
       },
     ],
   },
+  // Enlaces que se envían a un cliente para que arme su cotización en /cotizar/<token>.
+  enlaces: {
+    table: 'sf_cotizacion_enlace', pk: 'id_enlace', title: 'Enlaces de cotización', singular: 'enlace',
+    icon: 'link', group: 'Ventas', gender: 'm', read: [ADMIN], write: [ADMIN],
+    labelSql: '{a}.enl_nombre', order: ['id_enlace', 'desc'], fkMode: 'select',
+    fields: [
+      F('enl_nombre', 'Cliente o referencia', 'text', {
+        required: true, max: 100, list: true, search: true, full: true, placeholder: 'Ej.: Taller Los Aromos',
+        help: 'Solo lo ves tú, para reconocer el enlace. El cliente no lo ve.',
+      }),
+      // El token lo genera el servidor al crear el enlace.
+      F('enl_token', 'Código del enlace', 'text', { readonly: true, hideOnCreate: true }),
+      F('enl_activo', 'Activo', 'bool', { default: 1, list: true, filter: true, help: 'Desactívalo para que el enlace deje de funcionar.' }),
+      F('enl_expira', 'Vence el', 'date', { list: true, help: 'Opcional. Desde el día siguiente el enlace deja de funcionar.' }),
+      F('enl_nota', 'Nota interna', 'textarea', { max: 500, full: true, placeholder: 'Opcional' }),
+    ],
+    extras: [
+      X('cotizaciones', 'Cotizaciones', 'SELECT COUNT(*) FROM sf_cotizacion x WHERE x.id_enlace = t.id_enlace'),
+      X('ultima', 'Última recibida', 'SELECT MAX(x.creado_en) FROM sf_cotizacion x WHERE x.id_enlace = t.id_enlace', 'datetime', { hideMd: true }),
+    ],
+    actions: [
+      { label: 'Copiar enlace', icon: 'copy', copy: '/cotizar/{enl_token}' },
+      { label: 'Enviar por WhatsApp', icon: 'send', share: '/cotizar/{enl_token}' },
+      { label: 'Cotizaciones', icon: 'list', module: 'cotizaciones', filter: 'id_enlace' },
+    ],
+  },
+  // Solicitudes que llenan los clientes desde el enlace. No se crean desde la plataforma.
+  cotizaciones: {
+    table: 'sf_cotizacion', pk: 'id_cotizacion', title: 'Cotizaciones', singular: 'cotización',
+    icon: 'inbox', group: 'Ventas', gender: 'f', read: [ADMIN], write: [ADMIN], noCreate: true,
+    labelSql: "CONCAT('N° ', {a}.id_cotizacion, ' · ', {a}.cot_nombre)", order: ['id_cotizacion', 'desc'],
+    fields: [
+      F('id_cotizacion', 'N°', 'int', { readonly: true, list: true }),
+      F('creado_en', 'Recibida', 'datetime', { readonly: true, list: true }),
+      F('cot_nombre', 'Nombre', 'text', { required: true, max: 100, list: true, search: true }),
+      F('cot_celular', 'Celular', 'text', { max: 20, list: true, search: true, hideMd: true }),
+      F('cot_rut', 'RUT', 'rut', { max: 12, search: true, hideMd: true }),
+      F('id_enlace', 'Enlace', 'fk', { ref: 'enlaces', readonly: true, filter: true, hideMd: true }),
+      F('cot_estado', 'Estado', 'enum', {
+        options: ['NUEVA', 'CONTACTADO', 'CERRADA', 'DESCARTADA'], required: true, default: 'NUEVA', list: true, filter: true,
+      }),
+      F('cot_comentario', 'Comentario del cliente', 'textarea', { readonly: true, full: true }),
+      F('cot_nota', 'Nota interna', 'textarea', { max: 1000, full: true, placeholder: 'Opcional' }),
+    ],
+    extras: [
+      X('items', 'Productos', 'SELECT COUNT(*) FROM sf_cotizacion_detalle x WHERE x.id_cotizacion = t.id_cotizacion', 'int', { hideMd: true }),
+      X('total', 'Total', 'SELECT COALESCE(SUM(x.cotd_total), 0) FROM sf_cotizacion_detalle x WHERE x.id_cotizacion = t.id_cotizacion', 'money'),
+    ],
+    actions: [
+      { label: 'Escribir por WhatsApp', icon: 'send', whatsapp: 'cot_celular', showIf: { field: 'cot_celular', notEmpty: true } },
+      { label: 'Productos', icon: 'list', module: 'cotizacion_items', filter: 'id_cotizacion' },
+    ],
+  },
+  // Productos de cada cotización. Solo se muestran dentro del detalle de la cotización.
+  cotizacion_items: {
+    table: 'sf_cotizacion_detalle', pk: 'id_detalle', title: 'Productos cotizados', singular: 'producto cotizado',
+    icon: 'list', group: 'Ventas', gender: 'm', read: [ADMIN], write: [], hidden: true,
+    labelSql: "CONCAT('Detalle ', {a}.id_detalle)", order: ['id_detalle', 'asc'],
+    fields: [
+      F('id_cotizacion', 'Cotización', 'fk', { ref: 'cotizaciones', required: true, filter: true }),
+      F('id_producto', 'Producto', 'fk', { ref: 'productos', required: true, list: true }),
+      F('cotd_cantidad', 'Cantidad', 'int', { required: true, min: 1, list: true }),
+      F('cotd_precio', 'Precio unit.', 'money', { list: true, help: 'Precio de venta (con IVA) al momento de la solicitud.' }),
+      F('cotd_total', 'Subtotal', 'money', { readonly: true, list: true }),
+    ],
+  },
 
   // ------------------------------------------------------------ Administración
   vendedores: {
@@ -326,9 +396,12 @@ export function publicMeta(role) {
       key: mod.key, pk: mod.pk, title: mod.title, singular: mod.singular, gender: mod.gender,
       icon: mod.icon, group: mod.group, fk_mode: mod.fkMode, date_field: mod.dateField,
       order: mod.order, can_write: canWrite(mod, role), singleton: Boolean(mod.singleton),
+      can_create: canWrite(mod, role) && !mod.singleton && !mod.noCreate, hidden: Boolean(mod.hidden),
+      page_actions: (mod.pageActions ?? []).filter(a => !a.roles || a.roles.includes(role)).map(({ roles, ...a }) => a),
       fields: mod.fields.map(({ minLength, ...f }) => ({ ...f, virtual: Boolean(f.virtual), min_length: minLength })),
       extras: mod.extras.map(({ sql, ...e }) => e),
-      // Acciones de navegación a otro módulo (module/filter) o de descarga (download con {campo} de la fila).
-      actions: mod.actions.filter(a => (a.module ? canRead(MODULES[a.module], role) : canRead(MODULES.pedidos, role))),
+      // Acciones: navegar a otro módulo (module/filter), descargar (download), copiar o compartir un enlace
+      // (copy/share, con {campo} de la fila) o escribir por WhatsApp al número de un campo (whatsapp).
+      actions: mod.actions.filter(a => (a.module ? canRead(MODULES[a.module], role) : a.download ? canRead(MODULES.pedidos, role) : true)),
     }));
 }

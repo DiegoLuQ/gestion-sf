@@ -81,6 +81,36 @@ Luego:
 | `npm run imagenes:optimizar` | Convierte a WEBP optimizado las imágenes de productos que aún no lo son (con `-- --revisar` solo informa) |
 | `npm run exportar` | Genera el .sql para importar en Hostinger (sin las tablas `respaldo_v1_*`) |
 
+## Cotizaciones por enlace
+
+Permite enviar a un cliente un enlace para que arme su cotización sin iniciar sesión.
+
+1. En **Ventas > Enlaces de cotización**, el administrador crea un enlace con el nombre del cliente o una referencia.
+   El sistema genera un código aleatorio de 24 caracteres.
+2. Con **Copiar enlace** o **Enviar por WhatsApp** se envía `https://santiagofiltros.cl/cotizar/<código>`.
+3. El cliente busca productos disponibles, indica cantidades y envía su nombre (obligatorio), celular y RUT (opcionales).
+   Solo ve código, descripción, marca y categoría: nunca precios ni stock.
+4. La solicitud llega a **Ventas > Cotizaciones** con estado NUEVA. El detalle muestra cada producto,
+   su precio de venta al momento de la solicitud y el total.
+
+- Un enlace desactivado o vencido deja de funcionar. Si se elimina, sus cotizaciones se conservan.
+- Cada IP puede enviar hasta 5 cotizaciones cada 10 minutos, y un campo invisible descarta envíos de bots.
+- Solo el Administrador ve estos módulos. Las páginas `/cotizar/` no se indexan.
+
+## Catálogo de productos
+
+Desde **Productos > Catálogo** (solo Administrador) se abre un modal para:
+
+- **Crear enlaces** con un nombre o referencia y una fecha de vencimiento obligatoria (hasta 2 años).
+  El enlace `https://santiagofiltros.cl/catalogo/<código>` funciona hasta el final de ese día.
+  Se puede copiar, enviar por WhatsApp, desactivar o eliminar.
+- **Descargar el PDF** con portada, una sección por categoría y 6 productos por página con la foto grande.
+  El PDF se guarda 10 minutos y se renueva al guardar cualquier cambio en el sistema.
+
+El catálogo muestra imagen, código, descripción, marca, categoría y precio de venta (con IVA) de los productos
+en estado Disponible, con búsqueda y filtro por categoría. Los productos sin precio muestran «Consultar».
+Nunca muestra stock y no se indexa en buscadores.
+
 ## Estructura
 
 ```
@@ -91,7 +121,10 @@ src/auth.js             login, logout y protección de la API
 src/dashboard.js        datos del panel de inicio
 src/imagenes.js         subida de imágenes de productos
 src/empresa.js          configuración de la empresa y datos públicos de marca
-src/web.js              API pública de la página web (catálogo y contacto)
+src/web.js              página web pública generada en el servidor
+src/bots.js             bloqueo de bots y límite de solicitudes
+src/cotizar.js          cotización por enlace (página y API públicas)
+src/catalogo.js         catálogo en línea con enlaces que vencen y PDF
 src/sesiones.js         sesiones guardadas en MySQL (tabla sf_sesion)
 src/migraciones.js      ejecutor de migraciones (tabla sf_migraciones, respaldo y bloqueo)
 src/logo.js             logo de la empresa convertido a PNG para los PDF

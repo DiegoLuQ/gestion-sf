@@ -157,14 +157,41 @@ function renderList(root, mod, params, { navigate }) {
   let seq = 0;
   let lastRows = [];
 
-  // Acciones extra del módulo: navegar a otro módulo filtrado, o descargar un archivo (p. ej. la nota de venta).
-  const actionVisible = (a, row) => !a.showIf || row?.[a.showIf.field] === a.showIf.equals;
+  // Acciones extra del módulo: navegar a otro módulo filtrado, descargar un archivo (p. ej. la nota de venta),
+  // copiar o compartir un enlace público, o escribir por WhatsApp.
+  const actionVisible = (a, row) => !a.showIf
+    || (a.showIf.notEmpty ? Boolean(String(row?.[a.showIf.field] ?? '').trim()) : row?.[a.showIf.field] === a.showIf.equals);
+  const fillUrl = (template, row) => template.replace(/\{(\w+)\}/g, (_, key) => encodeURIComponent(row[key] ?? ''));
   async function runAction(a, row, btn) {
+    // Enlace público (p. ej. /cotizar/<código>): se copia o se comparte con la dirección completa del sitio.
+    if (a.copy) {
+      const url = location.origin + fillUrl(a.copy, row);
+      try {
+        await navigator.clipboard.writeText(url);
+        toast('Enlace copiado. Pégalo donde quieras enviarlo.');
+      } catch {
+        window.prompt('Copia el enlace:', url);
+      }
+      return;
+    }
+    if (a.share) {
+      const url = location.origin + fillUrl(a.share, row);
+      const text = `Hola, te comparto el enlace para armar tu cotización: ${url}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+      return;
+    }
+    if (a.whatsapp) {
+      let phone = String(row[a.whatsapp] ?? '').replace(/\D/g, '');
+      if (phone.length === 9 && phone.startsWith('9')) phone = `56${phone}`;
+      if (phone.length < 8) { toast('El número no es válido para WhatsApp.', 'error'); return; }
+      window.open(`https://wa.me/${phone}`, '_blank', 'noopener');
+      return;
+    }
     if (!a.download) {
       navigate(`#/${a.module}?f_${a.filter}=${row[mod.pk]}`);
       return;
     }
-    const url = a.download.replace(/\{(\w+)\}/g, (_, key) => encodeURIComponent(row[key] ?? ''));
+    const url = fillUrl(a.download, row);
     setBusy(btn, true, btn.classList.contains('icon-btn') ? '' : 'Generando…');
     try {
       const filename = await api.download(url);
@@ -184,8 +211,9 @@ function renderList(root, mod, params, { navigate }) {
           <p data-count>Cargando…</p>
         </div>
         <div class="page-actions">
+          ${(mod.page_actions ?? []).map((a, i) => `<button class="btn" data-tool="${i}">${icon(a.icon)} <span>${esc(a.label)}</span></button>`).join('')}
           <button class="btn" data-export>${icon('download')} <span>Exportar CSV</span></button>
-          ${mod.can_write ? `<button class="btn btn-primary" data-new>${icon('plus')} ${esc(newLabel(mod))}</button>` : ''}
+          ${mod.can_create ? `<button class="btn btn-primary" data-new>${icon('plus')} ${esc(newLabel(mod))}</button>` : ''}
         </div>
       </div>
       <div class="card">
@@ -413,7 +441,7 @@ function renderList(root, mod, params, { navigate }) {
     const m = openModal({ title, body, footer });
     $$('[data-go]', m.el).forEach(btn => btn.addEventListener('click', () => {
       const a = mod.actions[Number(btn.dataset.go)];
-      if (!a.download) m.close();
+      if (a.module) m.close();
       runAction(a, row, btn);
     }));
     $('[data-edit]', m.el)?.addEventListener('click', () => { m.close(); openForm(row); });
@@ -607,6 +635,16 @@ function renderList(root, mod, params, { navigate }) {
   $('[data-hasta]', root)?.addEventListener('change', e => update({ hasta: e.target.value }));
   $('[data-clear]', root).addEventListener('click', () => navigate(`#/${mod.key}`, { force: true }));
   $('[data-new]', root)?.addEventListener('click', () => openForm());
+  // Herramientas propias del módulo (p. ej. el catálogo en Productos): se cargan solo al usarlas.
+  $$('[data-tool]', root).forEach(btn => btn.addEventListener('click', async () => {
+    const { tool } = mod.page_actions[Number(btn.dataset.tool)];
+    try {
+      const m = await import(`./${tool}.js`);
+      m.open();
+    } catch (err) {
+      toast(err.message || 'No se pudo abrir la herramienta.', 'error');
+    }
+  }));
   $('[data-export]', root).addEventListener('click', () => {
     const qs = queryString({ forExport: true });
     window.location.href = `/api/${mod.key}/exportar${qs ? `?${qs}` : ''}`;

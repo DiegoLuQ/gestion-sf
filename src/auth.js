@@ -15,7 +15,9 @@ export async function apiGuard(req, res, next) {
     return res.status(400).json({ error: 'Solicitud rechazada.' });
   }
   const publicGet = req.method === 'GET' && req.path === '/empresa/publico';
-  if (req.path === '/auth/login' || publicGet) return next();
+  // /cotizar/<código>: el cliente arma su cotización sin sesión; el código del enlace es la llave.
+  if (req.path === '/auth/login' || publicGet || /^\/cotizar\/[^/]+$/.test(req.path)
+    || (req.method === 'GET' && /^\/catalogo-publico\/[^/]+$/.test(req.path))) return next();
   const uid = req.session?.uid;
   const user = uid && await db.one(
     `SELECT u.usu_nombre, u.usu_permiso, u.usu_activo, v.id_vendedor, v.vend_nombre

@@ -48,6 +48,8 @@ User-agent: Applebot
 Allow: /
 Disallow: /app
 Disallow: /api/
+Disallow: /cotizar/
+Disallow: /catalogo/
 
 User-agent: *
 Disallow: /
@@ -107,7 +109,7 @@ export async function blockBots(req, res, next) {
     return (await verifySearchEngine(ip, engine.hosts)) ? next() : deny(res, 403, 'Acceso no permitido.');
   }
   if (LINK_PREVIEWS.test(ua)) {
-    return req.method === 'GET' && (req.path === '/' || req.path.startsWith('/uploads/') || req.path.startsWith('/img/'))
+    return req.method === 'GET' && (req.path === '/' || req.path.startsWith('/cotizar/') || req.path.startsWith('/catalogo/') || req.path.startsWith('/uploads/') || req.path.startsWith('/img/'))
       ? next() : deny(res, 403, 'Acceso no permitido.');
   }
   if (!BROWSER.test(ua) || BLOCKED.test(ua)) return deny(res, 403, 'Acceso no permitido.');

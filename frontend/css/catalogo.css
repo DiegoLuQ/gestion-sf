@@ -1,0 +1,33 @@
+/* Santiago Filtros · Catálogo en línea (sobre la base de cotizar.css) */
+.intro-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; }
+.intro-sub { color: var(--text-2); margin-top: 6px; }
+.vence { color: var(--muted); font-size: 13.5px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; }
+
+.catalog-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.item { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); }
+.item-media { aspect-ratio: 1 / 1; background: #fff; display: grid; place-items: center; border-bottom: 1px solid var(--border); }
+.item-media img { width: 100%; height: 100%; object-fit: contain; padding: 12px; }
+.item-media.empty-media { background: var(--surface-2); color: var(--border-strong); }
+.item-media.empty-media .i { width: 44px; height: 44px; stroke-width: 1.4; }
+.item-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.item-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; }
+.item-code { font-weight: 800; font-size: 16px; word-break: break-word; }
+.item-brand { color: var(--orange); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.item-desc { color: var(--text-2); font-size: 13.5px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.item-foot { margin-top: auto; padding-top: 10px; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.item-foot .product-cat { margin-top: 0; }
+.item-price { font-size: 19px; font-weight: 800; color: var(--navy-900); line-height: 1.1; text-align: right; margin-left: auto; }
+.item-price small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
+.item-price.consult { font-size: 13px; font-weight: 700; color: var(--muted); }
+.catalog-note { text-align: center; color: var(--muted); font-size: 13px; padding: 24px 0 40px; }
+
+@media (max-width: 1100px) { .catalog-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+@media (max-width: 640px) {
+  .item-body { padding: 10px; }
+  .item-code { font-size: 14.5px; }
+  .item-desc { font-size: 12.5px; }
+  .item-price { font-size: 16px; }
+  .item-foot .product-cat { display: none; }
+  .item-media img { padding: 8px; }
+}

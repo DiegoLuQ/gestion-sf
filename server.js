@@ -12,6 +12,8 @@ import express from 'express';
 import session from 'express-session';
 import multer from 'multer';
 import { apiGuard, authRouter } from './src/auth.js';
+import { catalogoAdminRouter, catalogoPageRouter, catalogoPublicRouter, invalidateCatalogo } from './src/catalogo.js';
+import { cotizarApiRouter, cotizarPageRouter } from './src/cotizar.js';
 import { crudRouter } from './src/crud.js';
 import { dashboardRouter } from './src/dashboard.js';
 import { db } from './src/db.js';
@@ -71,15 +73,18 @@ api.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 api.use(express.json({ limit: '1mb' }));
 // Cualquier cambio guardado (productos, ventas, configuración) renueva la página pública.
 api.use((req, res, next) => {
-  if (req.method !== 'GET') res.on('finish', () => { if (res.statusCode < 400) invalidateLanding(); });
+  if (req.method !== 'GET') res.on('finish', () => { if (res.statusCode < 400) { invalidateLanding(); invalidateCatalogo(); } });
   next();
 });
 api.use(apiGuard);
 api.use(authRouter);
+api.use(cotizarApiRouter);
+api.use(catalogoPublicRouter);
 api.use(empresaRouter);
 api.use(dashboardRouter);
 api.use(imagenesRouter);
 api.use(notaVentaRouter);
+api.use(catalogoAdminRouter);
 api.use(crudRouter);
 api.use((req, res) => res.status(404).json({ error: 'Recurso no encontrado.' }));
 app.use('/api', api);
@@ -90,6 +95,8 @@ const sendPage = file => (req, res) => res.sendFile(path.join(FRONTEND, file), {
 // Página pública de ventas en la raíz; el sistema de gestión vive en /app y se entra por /acceso-sf.
 // La web no enlaza el acceso, y /app sin sesión vuelve a la portada para no revelar la ruta.
 app.use(webRouter); // /, /robots.txt y /sitemap.xml
+app.use(cotizarPageRouter); // /cotizar/<código>: cotización del cliente
+app.use(catalogoPageRouter); // /catalogo/<código>: catálogo en línea
 app.get('/app', (req, res, next) => (req.session.uid ? sendPage('index.html')(req, res, next) : res.redirect('/')));
 app.get('/acceso-sf', (req, res, next) => (req.session.uid ? res.redirect('/app') : sendPage('login.html')(req, res, next)));
 

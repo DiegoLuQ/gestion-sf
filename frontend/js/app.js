@@ -33,7 +33,7 @@ function buildShell(user, modules) {
   $('[data-sidebar-close]').innerHTML = icon('x');
 
   const groups = [];
-  for (const mod of modules) {
+  for (const mod of modules.filter(m => !m.hidden)) {
     let g = groups.find(x => x.name === mod.group);
     if (!g) groups.push(g = { name: mod.group, items: [] });
     g.items.push(mod);

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solicitud de cotización · Santiago Filtros</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0f2a47">
+  <meta property="og:title" content="Arma tu cotización · Santiago Filtros">
+  <meta property="og:description" content="Elige los productos y cantidades que necesitas y envíanos tu solicitud.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230f2a47'/%3E%3Cpath d='M6 6h12l-4.5 6v4.5l-3 1.5v-6z' fill='%23f7500b'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/css/cotizar.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <span class="brand">
+        <span class="brand-mark" data-logo><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16l-6 8v6l-4 2v-8z"/></svg></span>
+        <span class="brand-name" data-empresa>Santiago Filtros</span>
+      </span>
+      <span class="topbar-tag">Solicitud de cotización</span>
+    </div>
+  </header>
+
+  <main class="wrap" id="app">
+    <div class="state" data-loading>
+      <span class="spinner" aria-hidden="true"></span>
+      <p>Cargando productos…</p>
+    </div>
+  </main>
+
+  <!-- Vista principal -->
+  <template id="tpl-main">
+    <section class="intro">
+      <h1>Arma tu cotización</h1>
+      <ol class="steps">
+        <li><span>1</span>Busca y agrega los productos</li>
+        <li><span>2</span>Indica las cantidades</li>
+        <li><span>3</span>Envía tus datos</li>
+      </ol>
+    </section>
+
+    <div class="layout">
+      <section class="catalog" aria-labelledby="catalogo-titulo">
+        <h2 id="catalogo-titulo" class="sr-only">Productos</h2>
+        <div class="tools">
+          <label class="search">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <span class="sr-only">Buscar productos</span>
+            <input type="search" data-search autocomplete="off" placeholder="Busca por código, vehículo o marca">
+          </label>
+          <div class="cats" role="group" aria-label="Filtrar por categoría" data-cats></div>
+        </div>
+        <p class="count" aria-live="polite" data-count></p>
+        <ul class="products" data-products></ul>
+        <div class="more"><button type="button" class="btn btn-ghost" data-more hidden>Mostrar más productos</button></div>
+      </section>
+
+      <aside class="cart" data-cart aria-labelledby="cart-titulo">
+        <div class="cart-head">
+          <h2 id="cart-titulo">Tu cotización <span class="cart-count" data-cart-count>0</span></h2>
+          <button type="button" class="icon-btn cart-close" data-cart-close aria-label="Cerrar">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="cart-body">
+          <ul class="cart-items" data-cart-items></ul>
+          <p class="cart-empty" data-cart-empty>Aún no agregas productos. Búscalos en la lista y presiona «Agregar».</p>
+
+          <form class="form" data-form novalidate>
+            <h3>Tus datos</h3>
+            <div class="form-error" data-form-error role="alert" hidden></div>
+            <div class="field">
+              <label for="f-nombre">Nombre <span class="req" aria-hidden="true">*</span></label>
+              <input class="input" id="f-nombre" name="nombre" autocomplete="name" maxlength="100" required>
+              <p class="error" data-error="nombre" hidden></p>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="f-celular">Celular <small>(opcional)</small></label>
+                <input class="input" id="f-celular" name="celular" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="+56 9 1234 5678">
+                <p class="error" data-error="celular" hidden></p>
+              </div>
+              <div class="field">
+                <label for="f-rut">RUT <small>(opcional)</small></label>
+                <input class="input" id="f-rut" name="rut" autocomplete="off" maxlength="12" placeholder="12.345.678-9">
+                <p class="error" data-error="rut" hidden></p>
+              </div>
+            </div>
+            <div class="field">
+              <label for="f-comentario">Comentario <small>(opcional)</small></label>
+              <textarea class="input" id="f-comentario" name="comentario" rows="3" maxlength="1000" placeholder="Ej.: vehículo, año o cualquier detalle que nos ayude"></textarea>
+              <p class="error" data-error="comentario" hidden></p>
+            </div>
+            <!-- Campo trampa para bots: las personas no lo ven. -->
+            <div class="hp" aria-hidden="true">
+              <label for="f-sitio">Sitio web</label>
+              <input id="f-sitio" name="sitio_web" tabindex="-1" autocomplete="off">
+            </div>
+            <p class="error" data-error="items" hidden></p>
+            <button type="submit" class="btn btn-primary btn-block" data-submit>Enviar cotización</button>
+            <p class="form-note">No mostramos precios aquí: te responderemos con la cotización.</p>
+          </form>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Barra inferior en celulares -->
+    <div class="mobile-bar" data-mobile-bar>
+      <span><b data-bar-count>0</b> <span data-bar-label>productos</span></span>
+      <button type="button" class="btn btn-primary" data-cart-open>Revisar y enviar</button>
+    </div>
+  </template>
+
+  <script type="module" src="/js/cotizar.js"></script>
+</body>
+</html>

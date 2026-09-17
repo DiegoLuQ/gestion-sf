@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 // Motor CRUD genérico: listado, detalle, alta, edición, borrado, opciones y exportación CSV.
 import bcrypt from 'bcryptjs';
 import { Router } from 'express';
@@ -230,6 +231,11 @@ async function syncDocumentTotals(q, pedidoIds) {
 }
 
 async function beforeSave(mod, values, id, q, user) {
+  // Código aleatorio del enlace de cotización: 24 caracteres, imposible de adivinar.
+  if (mod.key === 'enlaces' && id === null) {
+    values.enl_token = crypto.randomBytes(18).toString('base64url');
+  }
+
   if (mod.key === 'pedidos') {
     if (id === null && !values.nump_numero) {
       values.nump_numero = await nextOrderNumber(q);
@@ -374,6 +380,7 @@ function rejectSingleton(mod) {
 async function write(req, id) {
   const mod = moduleOr404(req, { write: true });
   if (id === null) rejectSingleton(mod);
+  if (id === null && mod.noCreate) throw new ApiError(`Las ${mod.title.toLowerCase()} no se crean desde la plataforma.`, 405);
   const data = req.body;
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new ApiError('Se esperaba un objeto JSON.');
   const values = validate(mod, data, id === null, req.user);
