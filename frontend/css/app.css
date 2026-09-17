@@ -389,6 +389,10 @@ textarea.input { height: auto; min-height: 88px; padding: 10px 12px; resize: ver
 .form-info-item span { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .form-info-item b { font-size: 13px; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
 @media (max-width: 640px) { .form-info-item.end { margin-left: 0; text-align: left; } }
+/* Líneas ya cargadas en un formulario que se mantiene abierto (nueva línea de salida). */
+.added-lines { margin-top: 16px; border-top: 1px dashed var(--border-strong); padding-top: 12px; overflow-x: auto; }
+.added-lines .table-state { padding: 14px; color: var(--muted); text-align: center; }
+
 .form-sep { border: 0; border-top: 1px solid var(--border); margin: 2px 0; }
 
 /* Etiqueta con dato junto al nombre del campo (p. ej. stock) */

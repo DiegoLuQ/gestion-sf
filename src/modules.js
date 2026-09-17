@@ -42,7 +42,7 @@ export const MODULES = {
       F('prod_codigo', 'Código', 'text', { required: true, max: 30, list: true, search: true }),
       F('prod_codigo2', 'Código alternativo', 'text', { max: 30, search: true }),
       F('prod_descripcion', 'Descripción', 'text', { required: true, max: 255, list: true, search: true, full: true }),
-      F('id_marca', 'Marca', 'fk', { ref: 'marcas', required: true, list: true, filter: true, hideMd: true }),
+      F('id_marca', 'Marca', 'fk', { ref: 'marcas', required: true, list: true, filter: true }),
       // Fuera del listado para que la tabla quepa; sigue como filtro, en el formulario y en el detalle.
       F('id_subcategoria', 'Subcategoría', 'fk', { ref: 'subcategorias', required: true, filter: true }),
       F('id_proveedor', 'Proveedor', 'fk', { ref: 'proveedores', required: true, filter: true }),
@@ -217,6 +217,9 @@ export const MODULES = {
       }),
       F('salip_total', 'Total', 'money', { readonly: true, list: true }),
     ],
+    // keepOpen: al crear, el formulario no se cierra al guardar. Conserva el pedido y la fecha,
+    // limpia el resto y deja el cursor en el producto para seguir cargando la misma venta.
+    keepOpen: { keep: ['id_n_pedido', 'salip_fecha'], focus: 'id_producto', listBy: 'id_n_pedido' },
     extras: [X('cliente', 'Cliente', 'SELECT c.cli_nombre FROM sf_pedido p JOIN sf_cliente c '
       + 'ON c.id_cliente = p.id_cliente WHERE p.id_n_pedido = t.id_n_pedido', 'text', { hideMd: true })],
   },
@@ -398,6 +401,7 @@ export function publicMeta(role) {
       order: mod.order, can_write: canWrite(mod, role), singleton: Boolean(mod.singleton),
       can_create: canWrite(mod, role) && !mod.singleton && !mod.noCreate, hidden: Boolean(mod.hidden),
       page_actions: (mod.pageActions ?? []).filter(a => !a.roles || a.roles.includes(role)).map(({ roles, ...a }) => a),
+      keep_open: mod.keepOpen ?? null,
       fields: mod.fields.map(({ minLength, ...f }) => ({ ...f, virtual: Boolean(f.virtual), min_length: minLength })),
       extras: mod.extras.map(({ sql, ...e }) => e),
       // Acciones: navegar a otro módulo (module/filter), descargar (download), copiar o compartir un enlace

@@ -205,7 +205,7 @@ function buildLayoutField(field) {
     };
   }
   el.classList.add(field.full ? 'full' : `span-${field.span ?? 6}`);
-  Object.assign(el, { getValue: () => undefined, setValue: noop, setError: noop });
+  Object.assign(el, { getValue: () => undefined, setValue: noop, setError: noop, reset: noop });
   return el;
 }
 
@@ -299,6 +299,7 @@ export function buildField(field, record, preset = {}) {
         }).catch(() => select.insertAdjacentHTML('beforeend', '<option disabled>No se pudieron cargar las opciones</option>'));
         select.addEventListener('change', () => related(select.value, true));
         getValue = () => select.value;
+        wrap.reset = () => { select.value = ''; related('', true); };
       } else {
         const label = record ? (record[`${field.name}__label`] ?? '') : '';
         const c = combo({
@@ -308,6 +309,7 @@ export function buildField(field, record, preset = {}) {
         if (value != null && !label) optionLabel(field.ref, value).then(l => c.setValue(value, l, { silent: true })).catch(() => {});
         control.append(c);
         getValue = () => c.getValue() ?? '';
+        wrap.reset = () => c.setValue(null, ''); // avisa al formulario: limpia tarjetas y precios
       }
       // Registro ya elegido (al editar o al llegar filtrado): mostrar su información sin sobrescribir precios.
       if (value != null && value !== '') related(value, false);
@@ -388,6 +390,8 @@ export function buildField(field, record, preset = {}) {
   }
 
   wrap.getValue = getValue;
+  // Deja el campo vacío para cargar el siguiente registro (formularios que siguen abiertos al guardar).
+  wrap.reset ??= () => wrap.setValue('');
   wrap.setValue = v => {
     const el = control.querySelector('input:not([type=file]), textarea, select');
     if (el) el.value = v ?? '';

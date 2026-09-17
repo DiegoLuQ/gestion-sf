@@ -547,14 +547,47 @@ function renderList(root, mod, params, { navigate }) {
           .finally(() => { input.placeholder = ''; });
       }
     }
+    // Carga en serie (p. ej. líneas de salida): el formulario queda abierto al guardar.
+    const serie = !record && mod.keep_open ? mod.keep_open : null;
+    const panel = serie ? h('<div class="added-lines" hidden></div>') : null;
+    if (panel) form.after(panel);
+
     const m = openModal({
       title: record ? `Editar ${mod.singular}` : newLabel(mod),
-      body: form,
-      footer: `<button type="button" class="btn" data-close>Cancelar</button>
+      body: serie ? h('<div></div>') : form,
+      footer: `${serie ? `<button type="button" class="btn" data-added hidden>${icon('list')} <span>Ver cargados</span></button>` : ''}
+               <button type="button" class="btn" data-close>${serie ? 'Cerrar' : 'Cancelar'}</button>
                <button type="submit" class="btn btn-primary" form="${formId}" data-save>${icon('check')} Guardar</button>`,
     });
+    if (serie) m.body.firstElementChild.append(form, panel);
     saveBtn = $('[data-save]', m.el);
     checkLimits();
+
+    // Listado de lo ya cargado en este pedido, para revisarlo sin cerrar el formulario.
+    const addedBtn = $('[data-added]', m.el);
+    let added = 0;
+    async function renderAdded() {
+      const parentId = controls.find(c => c.dataset.field === serie.listBy)?.getValue();
+      if (!parentId) { panel.innerHTML = '<div class="table-state">Elige un pedido para ver sus líneas.</div>'; return; }
+      panel.innerHTML = '<div class="table-state">Cargando…</div>';
+      try {
+        const cols = mod.fields.filter(f => f.list && f.name !== serie.listBy && f.type !== 'image');
+        const { rows } = await api.get(`/api/${mod.key}?f_${serie.listBy}=${parentId}&size=100`);
+        const total = rows.reduce((acc, r) => acc + Number(r.salip_total || 0), 0);
+        panel.innerHTML = rows.length
+          ? `<table class="data compact"><thead><tr>${cols.map(f => `<th class="${isNumeric(f) ? 'num' : ''}">${esc(f.label)}</th>`).join('')}</tr></thead>
+             <tbody>${rows.map(r => `<tr>${cols.map(f => `<td data-label="${esc(f.label)}" class="${isNumeric(f) ? 'num' : ''}">${formatValue(f, r)}</td>`).join('')}</tr>`).join('')}
+             <tr><td colspan="${cols.length - 1}" style="text-align:right"><b>Total del pedido</b></td><td class="num"><b>${fmtMoney(total)}</b></td></tr></tbody></table>`
+          : '<div class="table-state">Este pedido aún no tiene líneas.</div>';
+      } catch (err) {
+        panel.innerHTML = `<div class="table-state">${esc(err.message)}</div>`;
+      }
+    }
+    addedBtn?.addEventListener('click', () => {
+      panel.hidden = !panel.hidden;
+      $('span', addedBtn).textContent = panel.hidden ? `Ver cargados (${added})` : 'Ocultar cargados';
+      if (!panel.hidden) renderAdded();
+    });
 
     form.addEventListener('submit', async e => {
       e.preventDefault();
@@ -604,8 +637,27 @@ function renderList(root, mod, params, { navigate }) {
         }
       }
       invalidateOptions(mod.key);
+      const creada = `${capitalize(mod.singular)} ${mod.gender === 'f' ? 'creada' : 'creado'}.`;
+
+      // Carga en serie: se conservan los campos comunes (pedido, fecha) y se limpia el resto.
+      if (serie) {
+        setBusy(saveBtn, false);
+        for (const c of controls) if (!serie.keep.includes(c.dataset.field)) c.reset();
+        controls.forEach(c => c.setError(''));
+        recalc();
+        checkLimits();
+        added += 1;
+        addedBtn.hidden = false;
+        $('span', addedBtn).textContent = panel.hidden ? `Ver cargados (${added})` : 'Ocultar cargados';
+        if (!panel.hidden) renderAdded();
+        $(`[data-field="${serie.focus}"] input, [data-field="${serie.focus}"] select`, form)?.focus();
+        toast(`${creada} Agrega el siguiente producto o cierra la ventana.`);
+        load();
+        return;
+      }
+
       m.close();
-      toast(`${record ? 'Cambios guardados.' : `${capitalize(mod.singular)} ${mod.gender === 'f' ? 'creada' : 'creado'}.`}${imageNote}`);
+      toast(`${record ? 'Cambios guardados.' : creada}${imageNote}`);
       load();
     });
   }
