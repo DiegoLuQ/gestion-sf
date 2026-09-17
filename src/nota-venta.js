@@ -25,9 +25,9 @@ const COLUMNS = [
   { key: 'unitario', label: 'Precio Unit.', width: 105, align: 'right' },
   { key: 'total', label: 'Total', width: CONTENT_W - 62 - 128 - 108 - 105, align: 'right' },
 ];
-const ROW_H = 17;
-const HEADER_H = 20;
-const TOTALS_H = 3 * 19;
+const ROW_H = 21;
+const HEADER_H = 23;
+const TOTALS_H = 3 * 23;
 const FOOTER_H = 96;
 
 const money = n => Math.round(n).toLocaleString('es-CL');
@@ -49,17 +49,17 @@ function drawDefaultLogo(doc, x, y, size) {
 // ---------------------------------------------------------------------------
 //  Dibujo
 // ---------------------------------------------------------------------------
-const MIN_FONT = 6;
+const MIN_FONT = 7;
 
 // Texto de una celda en una sola línea. Si no cabe, se achica la letra hasta MIN_FONT
 // y solo entonces se corta con "…" (así los nombres largos de clientes se leen completos).
 // Con wrap, si ni siquiera cabe con letra pequeña, usa hasta dos líneas.
-function cellText(doc, text, x, y, width, height, { align = 'left', bold = false, size = 8.5, color = COLORS.text, wrap = false } = {}) {
+function cellText(doc, text, x, y, width, height, { align = 'left', bold = false, size = 10.5, color = COLORS.text, wrap = false } = {}) {
   const value = String(text ?? '');
   const inner = width - 10;
   doc.font(bold ? 'Helvetica-Bold' : 'Helvetica');
   let fontSize = size;
-  const minFont = wrap ? 7.5 : MIN_FONT;
+  const minFont = wrap ? 8.5 : MIN_FONT;
   while (fontSize > minFont && doc.fontSize(fontSize).widthOfString(value) > inner) fontSize -= 0.25;
   if (wrap && doc.fontSize(fontSize).widthOfString(value) > inner) {
     const small = 7;
@@ -99,15 +99,15 @@ function drawHeader(doc, data, logo) {
   rows.forEach(([label, value], i) => {
     const ry = top + i * rowH;
     doc.lineWidth(0.8).strokeColor(COLORS.border).rect(cx, ry, cw, rowH).stroke();
-    cellText(doc, label, cx, ry, 52, rowH, { bold: true, size: 8.5 });
-    cellText(doc, value, cx + 44, ry, cw - 44, rowH, { size: 9, wrap: i === 0 });
+    cellText(doc, label, cx, ry, 52, rowH, { bold: true, size: 10 });
+    cellText(doc, value, cx + 44, ry, cw - 44, rowH, { size: 11, wrap: i === 0 });
   });
 
   // Número y título
   const nx = x + CONTENT_W - numW;
   doc.lineWidth(0.8).strokeColor(COLORS.border).rect(nx, top, numW, boxH).stroke();
   doc.font('Helvetica-Bold').fontSize(24).fillColor(COLORS.text).text(folio(data.numero), nx, top + 12, { width: numW, align: 'center', lineBreak: false });
-  doc.font('Helvetica-Bold').fontSize(10).text('NOTA DE VENTA', nx, top + 44, { width: numW, align: 'center', lineBreak: false });
+  doc.font('Helvetica-Bold').fontSize(11).text('NOTA DE VENTA', nx, top + 44, { width: numW, align: 'center', lineBreak: false });
   if (data.estado === 'ANULADO') {
     doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.red).text('ANULADO', nx, top + 58, { width: numW, align: 'center', lineBreak: false });
   }
@@ -119,7 +119,7 @@ function drawTableHeader(doc, y) {
   doc.rect(x, y, CONTENT_W, HEADER_H).fill(COLORS.header);
   for (const col of COLUMNS) {
     doc.lineWidth(0.8).strokeColor(COLORS.border).rect(x, y, col.width, HEADER_H).stroke();
-    cellText(doc, col.label, x, y, col.width, HEADER_H, { align: 'center', size: 9 });
+    cellText(doc, col.label, x, y, col.width, HEADER_H, { align: 'center', size: 10.5 });
     x += col.width;
   }
   return y + HEADER_H;
@@ -141,10 +141,10 @@ function drawTotals(doc, y, totals) {
   const x = PAGE.margin + CONTENT_W - labelW - valueW;
   const lines = [['TOTAL NETO', totals.neto], ['I.V.A. 19%', totals.iva], ['TOTAL A PAGAR', totals.total]];
   lines.forEach(([label, value], i) => {
-    const ry = y + i * 19;
-    doc.lineWidth(0.8).strokeColor(COLORS.border).rect(x, ry, labelW, 19).stroke().rect(x + labelW, ry, valueW, 19).stroke();
-    cellText(doc, label, x, ry, labelW, 19, { align: 'right', bold: true, size: 9 });
-    cellText(doc, money(value), x + labelW, ry, valueW, 19, { align: 'right', bold: i === 2, size: 9.5 });
+    const ry = y + i * 23;
+    doc.lineWidth(0.8).strokeColor(COLORS.border).rect(x, ry, labelW, 23).stroke().rect(x + labelW, ry, valueW, 23).stroke();
+    cellText(doc, label, x, ry, labelW, 23, { align: 'right', bold: true, size: 11 });
+    cellText(doc, money(value), x + labelW, ry, valueW, 23, { align: 'right', bold: i === 2, size: 11.5 });
   });
   return y + TOTALS_H;
 }
@@ -221,7 +221,7 @@ export async function buildNotaVenta(pedidoId) {
     for (let i = 0; i < count; i += 1) {
       doc.switchToPage(i);
       doc.page.margins.bottom = 0; // escribir bajo el margen sin que pdfkit agregue una página nueva
-      doc.font('Helvetica').fontSize(8).fillColor(COLORS.muted)
+      doc.font('Helvetica').fontSize(9).fillColor(COLORS.muted)
         .text(`Nota de venta ${folio(pedido.numero)} · página ${i + 1} de ${count}`, PAGE.margin, PAGE.height - 22,
           { width: CONTENT_W, align: 'right', lineBreak: false });
     }
