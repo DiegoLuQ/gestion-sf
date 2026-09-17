@@ -1,12 +1,12 @@
 // Nota de venta en PDF de un pedido (formato de la nota impresa original).
 //
-// Los precios del sistema incluyen IVA y así se muestran en la tabla (igual que en Productos):
-//   precio unitario  = precio de venta con IVA
-//   total de línea   = cantidad × precio con IVA
-//   TOTAL A PAGAR    = suma de los totales de línea (lo que paga el cliente)
-//   TOTAL NETO       = TOTAL A PAGAR / 1,19 (redondeado)
-//   I.V.A. 19%       = TOTAL A PAGAR − TOTAL NETO
-// Así la columna Total suma exactamente el total a pagar, sin diferencias por redondeo.
+// La tabla muestra los precios tal como están en Productos y esa suma es el neto:
+//   precio unitario  = precio de venta del producto
+//   total de línea   = cantidad × precio de venta
+//   TOTAL NETO       = suma de los totales de línea
+//   I.V.A. 19%       = 19% del TOTAL NETO (redondeado)
+//   TOTAL A PAGAR    = TOTAL NETO + I.V.A.
+// Así la columna Total suma exactamente el neto y el IVA se agrega encima.
 import { Router } from 'express';
 import PDFDocument from 'pdfkit';
 import { db } from './db.js';
@@ -185,9 +185,9 @@ export async function buildNotaVenta(pedidoId) {
       bruto,
     };
   });
-  const total = Math.round(rows.reduce((a, r) => a + r.bruto, 0));
-  const neto = Math.round(total / (1 + IVA));
-  const totals = { neto, iva: total - neto, total };
+  const neto = Math.round(rows.reduce((a, r) => a + r.bruto, 0));
+  const iva = Math.round(neto * IVA);
+  const totals = { neto, iva, total: neto + iva };
 
   const empresa = await db.one('SELECT emp_nombre, emp_url_img FROM sf_empresa WHERE id_empresa = 1');
   const logo = await getLogoPng(empresa?.emp_url_img);
