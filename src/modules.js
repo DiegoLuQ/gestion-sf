@@ -251,11 +251,18 @@ export const MODULES = {
   enlaces: {
     table: 'sf_cotizacion_enlace', pk: 'id_enlace', title: 'Enlaces de cotización', singular: 'enlace',
     icon: 'link', group: 'Ventas', gender: 'm', read: [ADMIN], write: [ADMIN],
-    labelSql: '{a}.enl_nombre', order: ['id_enlace', 'desc'], fkMode: 'select',
+    labelSql: `COALESCE((SELECT c.cli_nombre FROM sf_cliente c WHERE c.id_cliente = {a}.id_cliente), {a}.enl_nombre, CONCAT('Enlace ', {a}.id_enlace))`,
+    order: ['id_enlace', 'desc'], fkMode: 'select',
     fields: [
-      F('enl_nombre', 'Cliente o referencia', 'text', {
-        required: true, max: 100, list: true, search: true, full: true, placeholder: 'Ej.: Taller Los Aromos',
-        help: 'Solo lo ves tú, para reconocer el enlace. El cliente no lo ve.',
+      // Con cliente: la cotización llega asociada a él y la página no le pide el nombre.
+      // Sin cliente: enlace público, cualquiera lo usa y escribe sus datos.
+      F('id_cliente', 'Cliente', 'fk', {
+        ref: 'clientes', list: true, filter: true, search: true, full: true,
+        help: 'Déjalo vacío para un enlace público, que puedes enviar a varias personas.',
+      }),
+      F('enl_nombre', 'Referencia', 'text', {
+        max: 100, list: true, search: true, full: true, placeholder: 'Ej.: Campaña filtros septiembre',
+        help: 'Opcional si elegiste un cliente. Solo la ves tú, para reconocer el enlace.',
       }),
       // El token lo genera el servidor al crear el enlace.
       F('enl_token', 'Código del enlace', 'text', { readonly: true, hideOnCreate: true }),
@@ -282,6 +289,8 @@ export const MODULES = {
       F('id_cotizacion', 'N°', 'int', { readonly: true, list: true }),
       F('creado_en', 'Recibida', 'datetime', { readonly: true, list: true }),
       F('cot_nombre', 'Nombre', 'text', { required: true, max: 100, list: true, search: true }),
+      // Viene del enlace cuando está asociado a un cliente; vacío si la cotización llegó por un enlace público.
+      F('id_cliente', 'Cliente', 'fk', { ref: 'clientes', list: true, filter: true, hideMd: true }),
       F('cot_celular', 'Celular', 'text', { max: 20, list: true, search: true, hideMd: true }),
       F('cot_rut', 'RUT', 'rut', { max: 12, search: true, hideMd: true }),
       F('id_enlace', 'Enlace', 'fk', { ref: 'enlaces', readonly: true, filter: true, hideMd: true }),

@@ -232,8 +232,13 @@ async function syncDocumentTotals(q, pedidoIds) {
 
 async function beforeSave(mod, values, id, q, user) {
   // Código aleatorio del enlace de cotización: 24 caracteres, imposible de adivinar.
-  if (mod.key === 'enlaces' && id === null) {
-    values.enl_token = crypto.randomBytes(18).toString('base64url');
+  if (mod.key === 'enlaces') {
+    if (id === null) values.enl_token = crypto.randomBytes(18).toString('base64url');
+    // Un enlace se reconoce por su cliente o por su referencia: al menos uno de los dos.
+    const previo = id === null ? {} : await q.one('SELECT id_cliente, enl_nombre FROM sf_cotizacion_enlace WHERE id_enlace = ?', [id]) ?? {};
+    const cliente = Object.hasOwn(values, 'id_cliente') ? values.id_cliente : previo.id_cliente;
+    const nombre = Object.hasOwn(values, 'enl_nombre') ? values.enl_nombre : previo.enl_nombre;
+    if (!cliente && !nombre) throw invalid({ enl_nombre: 'Elige un cliente o escribe una referencia para reconocer el enlace.' });
   }
 
   if (mod.key === 'pedidos') {

@@ -12,6 +12,7 @@ const draftKey = `sf-cotizacion-${token}`;
 const app = $('#app');
 
 let productos = [];
+let cliente = null; // cliente del enlace, cuando está asociado a uno
 let byId = new Map();
 const state = { q: '', cat: '', limit: PAGE_SIZE };
 let cart = new Map(); // id -> cantidad
@@ -26,7 +27,7 @@ function loadDraft() {
 }
 function saveDraft() {
   const form = $('[data-form]');
-  const data = form ? Object.fromEntries(['nombre', 'celular', 'rut', 'comentario'].map(k => [k, form[k].value])) : {};
+  const data = form ? Object.fromEntries(['nombre', 'celular', 'rut', 'comentario'].map(k => [k, form[k]?.value ?? ''])) : {};
   try { localStorage.setItem(draftKey, JSON.stringify({ items: Object.fromEntries(cart), form: data })); } catch { /* sin almacenamiento */ }
 }
 function clearDraft() {
@@ -179,17 +180,17 @@ async function submit(e) {
   ['nombre', 'celular', 'rut', 'comentario', 'items'].forEach(n => setError(n, ''));
 
   const body = {
-    nombre: form.nombre.value.trim(),
-    celular: form.celular.value.trim(),
-    rut: form.rut.value.trim(),
+    nombre: cliente ? cliente.nombre : form.nombre.value.trim(),
+    celular: cliente ? '' : form.celular.value.trim(),
+    rut: cliente ? '' : form.rut.value.trim(),
     comentario: form.comentario.value.trim(),
     sitio_web: form.sitio_web.value,
     items: [...cart].map(([id, cantidad]) => ({ id, cantidad })),
   };
   let invalid = false;
-  if (body.nombre.length < 2) { setError('nombre', 'Ingresa tu nombre.'); invalid = true; }
+  if (!cliente && body.nombre.length < 2) { setError('nombre', 'Ingresa tu nombre.'); invalid = true; }
   if (!body.items.length) { setError('items', 'Agrega al menos un producto a tu cotización.'); invalid = true; }
-  if (invalid) { (body.nombre.length < 2 ? form.nombre : button).focus(); return; }
+  if (invalid) { (!cliente && body.nombre.length < 2 ? form.nombre : button).focus(); return; }
 
   button.disabled = true;
   button.textContent = 'Enviando…';
@@ -216,7 +217,14 @@ function renderMain(formValues) {
     .concat(cats.map(c => `<button type="button" class="cat" data-cat="${esc(c)}" aria-pressed="false">${esc(c)}</button>`)).join('');
 
   const form = $('[data-form]');
-  for (const [k, v] of Object.entries(formValues)) if (form[k] && typeof v === 'string') form[k].value = v;
+  // Enlace de un cliente: se saluda por su nombre y se ocultan los campos de identidad.
+  if (cliente) {
+    $('[data-cliente]').innerHTML = `Cotización para <b>${esc(cliente.nombre)}</b>`;
+    $('[data-cliente]').hidden = false;
+    $('[data-datos-titulo]').textContent = 'Envíanos tu cotización';
+    $$('[data-solo-publico]').forEach(el => { el.hidden = true; });
+  }
+  for (const [k, v] of Object.entries(formValues)) if (form[k] && typeof v === 'string' && !form[k].closest('[data-solo-publico]')) form[k].value = v;
 
   state.q = ''; state.cat = ''; state.limit = PAGE_SIZE;
   renderProducts();
@@ -286,6 +294,7 @@ async function init() {
       img.onload = () => { const mark = $('[data-logo]'); mark.classList.add('has-logo'); mark.replaceChildren(img); };
       img.src = data.empresa.logo;
     }
+    cliente = data.cliente;
     productos = data.productos.map(p => ({ ...p, _search: normalize(`${p.codigo} ${p.descripcion} ${p.marca} ${p.categoria}`) }));
     byId = new Map(productos.map(p => [p.id, p]));
     bindAppEvents();

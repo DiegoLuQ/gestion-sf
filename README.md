@@ -85,8 +85,9 @@ Luego:
 
 Permite enviar a un cliente un enlace para que arme su cotización sin iniciar sesión.
 
-1. En **Ventas > Enlaces de cotización**, el administrador crea un enlace con el nombre del cliente o una referencia.
-   El sistema genera un código aleatorio de 24 caracteres.
+1. En **Ventas > Enlaces de cotización**, el administrador crea el enlace y el sistema genera un código aleatorio de 24 caracteres.
+   - **Con cliente:** se elige un cliente del sistema. La página lo saluda por su nombre, no le pide datos y la cotización queda asociada a su ficha.
+   - **Público:** sin cliente, solo con una referencia interna. Se puede enviar a varias personas y cada envío llega como una cotización distinta, con el nombre que escribió cada una.
 2. Con **Copiar enlace** o **Enviar por WhatsApp** se envía `https://santiagofiltros.cl/cotizar/<código>`.
 3. El cliente busca productos disponibles, indica cantidades y envía su nombre (obligatorio), celular y RUT (opcionales).
    Solo ve código, descripción, marca y categoría: nunca precios ni stock.

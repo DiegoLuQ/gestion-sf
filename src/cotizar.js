@@ -33,8 +33,11 @@ export const cotizarApiRouter = Router();
 async function enlaceVigente(token) {
   if (!TOKEN_RE.test(String(token))) throw new ApiError('Este enlace no existe. Revisa que esté completo.', 404);
   const enlace = await db.one(
-    `SELECT id_enlace, enl_activo, enl_expira, enl_expira < CURDATE() AS vencido
-     FROM sf_cotizacion_enlace WHERE enl_token = ?`, [token]);
+    `SELECT e.id_enlace, e.enl_activo, e.enl_expira, e.enl_expira < CURDATE() AS vencido,
+            e.id_cliente, c.cli_nombre, c.cli_rut
+     FROM sf_cotizacion_enlace e
+     LEFT JOIN sf_cliente c ON c.id_cliente = e.id_cliente
+     WHERE e.enl_token = ?`, [token]);
   if (!enlace) throw new ApiError('Este enlace no existe. Revisa que esté completo.', 404);
   if (!enlace.enl_activo || enlace.vencido) {
     throw new ApiError('Este enlace ya no está disponible. Pide uno nuevo a quien te lo envió.', 410);
@@ -48,7 +51,7 @@ const cleanText = text => {
 };
 
 cotizarApiRouter.get('/cotizar/:token', async (req, res) => {
-  await enlaceVigente(req.params.token);
+  const enlace = await enlaceVigente(req.params.token);
   const [empresa, productos, archivos] = await Promise.all([
     db.one('SELECT emp_nombre, emp_url_img FROM sf_empresa WHERE id_empresa = 1'),
     db.all(`SELECT p.id_producto, p.prod_codigo, p.prod_descripcion, p.prod_ruta_imagen, m.marca_nombre, s.subc_nombre
@@ -63,6 +66,8 @@ cotizarApiRouter.get('/cotizar/:token', async (req, res) => {
     fs.readdir(UPLOADS_DIR).then(names => new Set(names)).catch(() => new Set()),
   ]);
   res.set('Cache-Control', 'no-store').json({
+    // Enlace de un cliente: la página lo saluda por su nombre y no vuelve a pedirlo.
+    cliente: enlace.id_cliente ? { nombre: enlace.cli_nombre } : null,
     empresa: {
       nombre: empresa?.emp_nombre || 'Santiago Filtros',
       logo: /^https?:\/\//i.test(empresa?.emp_url_img || '') ? empresa.emp_url_img : null,
@@ -102,8 +107,10 @@ cotizarApiRouter.post('/cotizar/:token', async (req, res) => {
   if (String(body.sitio_web ?? '').trim()) return res.status(201).json({ numero: 0, nombre: String(body.nombre ?? '') });
 
   const errors = {};
-  const nombre = String(body.nombre ?? '').trim().replace(/\s+/g, ' ');
-  if (nombre.length < 2) errors.nombre = 'Ingresa tu nombre.';
+  // Con cliente asociado, el nombre y el RUT salen de su ficha; el visitante solo elige productos y comenta.
+  const conCliente = Boolean(enlace.id_cliente);
+  const nombre = conCliente ? String(enlace.cli_nombre ?? '').slice(0, 100) : String(body.nombre ?? '').trim().replace(/\s+/g, ' ');
+  if (!conCliente && nombre.length < 2) errors.nombre = 'Ingresa tu nombre.';
   else if (nombre.length > 100) errors.nombre = 'Máximo 100 caracteres.';
 
   const celular = String(body.celular ?? '').trim();
@@ -112,8 +119,8 @@ cotizarApiRouter.post('/cotizar/:token', async (req, res) => {
     errors.celular = 'Celular inválido. Ej.: +56 9 1234 5678';
   }
 
-  let rut = null;
-  if (String(body.rut ?? '').trim()) {
+  let rut = conCliente ? enlace.cli_rut ?? null : null;
+  if (!conCliente && String(body.rut ?? '').trim()) {
     rut = normalizeRut(body.rut);
     if (!rut) errors.rut = 'RUT inválido (revisa el dígito verificador).';
   }
@@ -144,9 +151,9 @@ cotizarApiRouter.post('/cotizar/:token', async (req, res) => {
       throw new ApiError('Algunos productos ya no están disponibles. Actualiza la página y revisa tu cotización.', 409);
     }
     const { insertId } = await q.run(
-      `INSERT INTO sf_cotizacion (id_enlace, cot_nombre, cot_celular, cot_rut, cot_comentario, cot_ip)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [enlace.id_enlace, nombre, celular || null, rut, comentario || null, String(req.ip ?? '').slice(0, 45)]);
+      `INSERT INTO sf_cotizacion (id_enlace, id_cliente, cot_nombre, cot_celular, cot_rut, cot_comentario, cot_ip)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [enlace.id_enlace, enlace.id_cliente ?? null, nombre, celular || null, rut, comentario || null, String(req.ip ?? '').slice(0, 45)]);
     for (const p of productos) {
       await q.run('INSERT INTO sf_cotizacion_detalle (id_cotizacion, id_producto, cotd_cantidad, cotd_precio) VALUES (?, ?, ?, ?)',
         [insertId, p.id_producto, cantidades.get(p.id_producto), p.prod_venta ?? 0]);

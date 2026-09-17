@@ -68,14 +68,16 @@
           <p class="cart-empty" data-cart-empty>Aún no agregas productos. Búscalos en la lista y presiona «Agregar».</p>
 
           <form class="form" data-form novalidate>
-            <h3>Tus datos</h3>
+            <h3 data-datos-titulo>Tus datos</h3>
             <div class="form-error" data-form-error role="alert" hidden></div>
-            <div class="field">
+            <!-- Enlace asociado a un cliente: se muestra su nombre y no se piden datos de identidad. -->
+            <p class="cliente-card" data-cliente hidden></p>
+            <div class="field" data-solo-publico>
               <label for="f-nombre">Nombre <span class="req" aria-hidden="true">*</span></label>
               <input class="input" id="f-nombre" name="nombre" autocomplete="name" maxlength="100" required>
               <p class="error" data-error="nombre" hidden></p>
             </div>
-            <div class="field-row">
+            <div class="field-row" data-solo-publico>
               <div class="field">
                 <label for="f-celular">Celular <small>(opcional)</small></label>
                 <input class="input" id="f-celular" name="celular" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="+56 9 1234 5678">
