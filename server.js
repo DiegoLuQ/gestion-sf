@@ -32,19 +32,6 @@ if (!process.env.SESSION_SECRET) {
   console.warn('Aviso: falta SESSION_SECRET en el entorno. Las sesiones se cerrarán cada vez que se reinicie el servidor.');
 }
 
-// Migraciones pendientes (con respaldo previo). AUTO_MIGRAR=false para aplicarlas solo con `npm run migrar`.
-if (process.env.AUTO_MIGRAR !== 'false') {
-  try {
-    await migrar({ log: msg => console.log(`[migraciones] ${msg}`) });
-  } catch (err) {
-    console.error(`[migraciones] ${err.message}`);
-    console.error('[migraciones] El servidor no inicia con la base a medio migrar. Revisa el error y vuelve a intentar.');
-    process.exit(1);
-  }
-}
-// Prepara el logo de la empresa (descarga y conversión a PNG) sin retrasar el arranque.
-db.one('SELECT emp_url_img FROM sf_empresa WHERE id_empresa = 1').then(e => prepareLogo(e?.emp_url_img)).catch(() => {});
-
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1); // Hostinger atiende detrás de un proxy HTTPS
@@ -124,6 +111,28 @@ app.use((err, req, res, _next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Santiago Filtros escuchando en http://localhost:${PORT}`);
+// ---------------------------------------------------------------- Arranque
+// Sin `await` a nivel superior: Hostinger carga este archivo con require(), que no lo admite.
+async function start() {
+  // Migraciones pendientes (con respaldo previo). AUTO_MIGRAR=false para aplicarlas solo con `npm run migrar`.
+  if (process.env.AUTO_MIGRAR !== 'false') {
+    try {
+      await migrar({ log: msg => console.log(`[migraciones] ${msg}`) });
+    } catch (err) {
+      console.error(`[migraciones] ${err.message}`);
+      console.error('[migraciones] El servidor no inicia con la base a medio migrar. Revisa el error y vuelve a intentar.');
+      process.exit(1);
+    }
+  }
+  // Prepara el logo de la empresa (descarga y conversión a PNG) sin retrasar el arranque.
+  db.one('SELECT emp_url_img FROM sf_empresa WHERE id_empresa = 1').then(e => prepareLogo(e?.emp_url_img)).catch(() => {});
+
+  app.listen(PORT, () => {
+    console.log(`Santiago Filtros escuchando en http://localhost:${PORT}`);
+  });
+}
+
+start().catch(err => {
+  console.error('No se pudo iniciar el servidor:', err);
+  process.exit(1);
 });
