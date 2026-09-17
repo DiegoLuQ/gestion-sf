@@ -17,7 +17,7 @@ const DNS_TTL_MS = 24 * 60 * 60 * 1000;
 
 // Buscadores permitidos: nombre en el User-Agent -> dominios válidos de su DNS inverso.
 const SEARCH_ENGINES = [
-  { ua: /googlebot|google-inspectiontool|googleother|adsbot-google|mediapartners-google/i, hosts: ['.googlebot.com', '.google.com', '.googleusercontent.com'] },
+  { ua: /googlebot|google-inspectiontool|googleother|adsbot-google|mediapartners-google|google-site-verification/i, hosts: ['.googlebot.com', '.google.com', '.googleusercontent.com'] },
   { ua: /bingbot|msnbot|adidxbot|bingpreview/i, hosts: ['.search.msn.com'] },
   { ua: /applebot/i, hosts: ['.applebot.apple.com'] },
 ];
