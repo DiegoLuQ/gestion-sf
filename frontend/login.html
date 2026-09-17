@@ -30,7 +30,7 @@
           <li><svg class="icon" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg> Funciona en computador, tablet y celular</li>
         </ul>
       </div>
-      <small class="hero-foot" style="color:#7f95b0">Iquique · Chile</small>
+      <small class="hero-foot" style="color:#7f95b0"><a href="/" style="color:inherit">← Volver al sitio web</a> · Iquique, Chile</small>
     </section>
 
     <section class="login-panel">
@@ -97,7 +97,7 @@
       submit.textContent = 'Ingresando…';
       try {
         await api.post('/api/auth/login', { usuario: form.usuario.value.trim(), password: password.value });
-        location.href = '/';
+        location.href = '/app';
       } catch (err) {
         error.textContent = err.message;
         error.hidden = false;

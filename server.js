@@ -20,6 +20,8 @@ import { ApiError, dbError } from './src/errores.js';
 import { imagenesRouter, UPLOADS_DIR } from './src/imagenes.js';
 import { prepareLogo } from './src/logo.js';
 import { notaVentaRouter } from './src/nota-venta.js';
+import { blockBots, limitRate } from './src/bots.js';
+import { invalidateLanding, webRouter } from './src/web.js';
 import { migrar } from './src/migraciones.js';
 import { MySqlSessionStore } from './src/sesiones.js';
 
@@ -45,6 +47,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// Bots de scraping fuera antes de tocar sesiones o la base.
+app.use(blockBots);
+
+// El sistema, el login y la API no se indexan.
+app.use(['/app', '/acceso-sf', '/api'], (req, res, next) => { res.set('X-Robots-Tag', 'noindex, nofollow'); next(); });
+
 app.use(session({
   name: 'sf.sid',
   secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
@@ -55,10 +63,17 @@ app.use(session({
   cookie: { httpOnly: true, sameSite: 'lax', secure: 'auto', maxAge: SESSION_HOURS * 60 * 60 * 1000 },
 }));
 
+app.use(limitRate);
+
 // ---------------------------------------------------------------- API
 const api = express.Router();
 api.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 api.use(express.json({ limit: '1mb' }));
+// Cualquier cambio guardado (productos, ventas, configuración) renueva la página pública.
+api.use((req, res, next) => {
+  if (req.method !== 'GET') res.on('finish', () => { if (res.statusCode < 400) invalidateLanding(); });
+  next();
+});
 api.use(apiGuard);
 api.use(authRouter);
 api.use(empresaRouter);
@@ -72,15 +87,18 @@ app.use('/api', api);
 // ---------------------------------------------------------------- Frontend
 const sendPage = file => (req, res) => res.sendFile(path.join(FRONTEND, file), { headers: { 'Cache-Control': 'no-cache' } });
 
-app.get('/', (req, res, next) => (req.session.uid ? sendPage('index.html')(req, res, next) : res.redirect('/login')));
-app.get('/login', (req, res, next) => (req.session.uid ? res.redirect('/') : sendPage('login.html')(req, res, next)));
+// Página pública de ventas en la raíz; el sistema de gestión vive en /app y se entra por /acceso-sf.
+// La web no enlaza el acceso, y /app sin sesión vuelve a la portada para no revelar la ruta.
+app.use(webRouter); // /, /robots.txt y /sitemap.xml
+app.get('/app', (req, res, next) => (req.session.uid ? sendPage('index.html')(req, res, next) : res.redirect('/')));
+app.get('/acceso-sf', (req, res, next) => (req.session.uid ? res.redirect('/app') : sendPage('login.html')(req, res, next)));
 
 for (const dir of ['css', 'js', 'img', 'vendor']) {
   app.use(`/${dir}`, express.static(path.join(FRONTEND, dir), { index: false, maxAge: 0 }));
 }
 
-app.use('/uploads/productos', (req, res, next) => (req.session.uid ? next() : res.status(401).end()),
-  express.static(UPLOADS_DIR, { index: false, maxAge: '1h', fallthrough: false }));
+// Fotos de productos: públicas porque las muestra el catálogo de la página web.
+app.use('/uploads/productos', express.static(UPLOADS_DIR, { index: false, maxAge: '1h', fallthrough: false }));
 
 app.use((req, res) => res.redirect('/'));
 

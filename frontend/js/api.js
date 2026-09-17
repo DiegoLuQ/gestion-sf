@@ -24,7 +24,7 @@ async function request(method, url, body) {
   }
   const data = await res.json().catch(() => ({}));
   if (res.status === 401 && !url.includes('/auth/login')) {
-    location.href = '/login';
+    location.href = '/acceso-sf';
     throw new ApiError(data.error || 'Sesión expirada.', 401);
   }
   if (!res.ok) throw new ApiError(data.error || `Error ${res.status}`, res.status, data.errors || {});
@@ -40,7 +40,7 @@ async function download(url) {
     throw new ApiError('No se pudo conectar con el servidor.', 0);
   }
   if (res.status === 401) {
-    location.href = '/login';
+    location.href = '/acceso-sf';
     throw new ApiError('Sesión expirada.', 401);
   }
   if (!res.ok) {

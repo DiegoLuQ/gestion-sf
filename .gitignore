@@ -15,16 +15,17 @@ database/*.sql
 database/*.sql.bak
 !database/schema.sql
 !database/triggers.sql
+!database/vistas.sql
 database/respaldos/
 
 # Archivos subidos por los usuarios (se respaldan aparte, no van en git)
-uploads/productos/*
+
 !uploads/productos/.gitkeep
 uploads/empresa/
 
 # Notas y capturas de trabajo locales (datos.md contiene credenciales de la base local)
 datos.md
-image.png
+image*.png
 otros/
 
 # Registros y temporales

@@ -14,6 +14,7 @@
     "migrar": "node database/migrar.js",
     "migrar:estado": "node database/migrar.js --estado",
     "exportar": "node database/exportar.js",
+    "vistas": "node database/vistas.js",
     "imagenes:optimizar": "node database/optimizar-imagenes.js"
   },
   "dependencies": {

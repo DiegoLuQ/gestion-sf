@@ -116,7 +116,7 @@ function wireShell() {
     if (e.target.closest('[data-theme-menu]')) { setOpen(false); toggleTheme(); }
     if (e.target.closest('[data-logout]')) {
       try { await api.post('/api/auth/logout'); } catch { /* se redirige igual */ }
-      location.href = '/login';
+      location.href = '/acceso-sf';
     }
   });
 

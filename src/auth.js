@@ -14,7 +14,8 @@ export async function apiGuard(req, res, next) {
   if (!['GET', 'HEAD'].includes(req.method) && req.get('X-Requested-With') !== 'fetch') {
     return res.status(400).json({ error: 'Solicitud rechazada.' });
   }
-  if (req.path === '/auth/login' || (req.method === 'GET' && req.path === '/empresa/publico')) return next();
+  const publicGet = req.method === 'GET' && req.path === '/empresa/publico';
+  if (req.path === '/auth/login' || publicGet) return next();
   const uid = req.session?.uid;
   const user = uid && await db.one(
     `SELECT u.usu_nombre, u.usu_permiso, u.usu_activo, v.id_vendedor, v.vend_nombre

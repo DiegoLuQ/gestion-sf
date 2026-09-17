@@ -13,6 +13,37 @@ npm start          # http://localhost:3100 (puerto definido en .env)
 
 Se ingresa con los usuarios del sistema anterior y sus mismas contraseñas, que ahora quedan cifradas.
 
+| Dirección | Qué muestra |
+|---|---|
+| `/` | Página pública de ventas con catálogo y botones para cotizar por WhatsApp |
+| `/acceso-sf` | Inicio de sesión del personal (la web no lo enlaza) |
+| `/app` | Sistema de gestión (requiere sesión) |
+
+Sin sesión, `/app` vuelve a la portada para no revelar la ruta de acceso.
+
+## Página web pública
+
+La portada `/` es la página de ventas y se genera en el servidor (`src/web.js` sobre `frontend/landing.html`),
+así los buscadores leen todo el contenido sin ejecutar JavaScript.
+
+- **Sin buscador ni API pública:** solo muestra los 10 filtros con mayor rotación que tienen stock.
+  La rotación son las unidades vendidas en los últimos 12 meses.
+- **WhatsApp:** los botones usan el número de la configuración de la empresa (por defecto +56 9 8173 2415).
+- **Precios:** se muestran solo si está activo «Mostrar precios en la web».
+- **SEO:** título y H1 locales, descripción, URL canónica, Open Graph, datos estructurados `AutoPartsStore`,
+  `/robots.txt` y `/sitemap.xml`. El sistema, el acceso y la API llevan `noindex`.
+- **Contenido cacheado 5 minutos:** cualquier cambio guardado en el sistema lo renueva al instante.
+
+### Bloqueo de bots (`src/bots.js`)
+
+- Solo entran Google, Bing y Apple, verificados por DNS inverso, y las vistas previas de WhatsApp, Facebook, Telegram y X.
+- Reciben 403 los bots de IA y SEO, las librerías HTTP (curl, Python, etc.), los navegadores sin interfaz y las visitas sin navegador.
+- Sin sesión iniciada, cada IP puede hacer hasta 120 solicitudes por minuto. El personal con sesión no tiene límite.
+- `BLOQUEO_BOTS=false` lo desactiva y `LIMITE_SOLICITUDES_MINUTO` cambia el límite. `SITE_URL` define el dominio canónico.
+
+Ningún bloqueo detiene a una persona copiando a mano o a un navegador real automatizado con cuidado.
+Por eso la web publica pocos datos.
+
 ## Subir a Hostinger
 
 Hay dos formas de preparar la base. En ambas el servidor aplica al iniciar las migraciones que falten.
@@ -60,6 +91,7 @@ src/auth.js             login, logout y protección de la API
 src/dashboard.js        datos del panel de inicio
 src/imagenes.js         subida de imágenes de productos
 src/empresa.js          configuración de la empresa y datos públicos de marca
+src/web.js              API pública de la página web (catálogo y contacto)
 src/sesiones.js         sesiones guardadas en MySQL (tabla sf_sesion)
 src/migraciones.js      ejecutor de migraciones (tabla sf_migraciones, respaldo y bloqueo)
 src/logo.js             logo de la empresa convertido a PNG para los PDF
@@ -72,7 +104,7 @@ database/migrar.js      comando npm run migrar
 database/exportar.js    comando npm run exportar
 database/exportador.js  exportación completa a .sql (también la usan los respaldos)
 database/respaldos/     respaldos automáticos antes de migrar (se guardan los últimos 10)
-frontend/               index.html, login.html, css/, js/
+frontend/               landing.html (web pública), index.html (sistema), login.html, css/, js/
 ```
 
 Para agregar un campo, agrégalo a la tabla en MySQL y a su módulo en `src/modules.js`.
@@ -123,7 +155,7 @@ No modifiques una migración que ya se aplicó en producción.
 
 ## Configuración de la empresa
 
-La tabla `sf_empresa` guarda una sola fila con nombre, RUT, correo, slogan y URL del logo.
+La tabla `sf_empresa` guarda una sola fila con nombre, RUT, correo, WhatsApp, dirección, horario, slogan, URL del logo y si la web muestra precios.
 Solo el Administrador la ve y la edita, desde Administración > Configuración de la empresa.
 El nombre, el slogan y el logo se muestran en el menú superior, en el título de la pestaña y en el inicio de sesión.
 El logo debe ser una URL pública que empiece con https:// o http://. Si no carga, se muestra el ícono por defecto.

@@ -280,7 +280,16 @@ export const MODULES = {
       F('emp_nombre', 'Nombre', 'text', { required: true, max: 100, list: true, full: true }),
       F('emp_rut', 'RUT', 'rut', { max: 12, list: true }),
       F('emp_correo', 'Correo', 'email', { max: 100, list: true }),
-      F('emp_slogan', 'Slogan', 'text', { max: 150, list: true, full: true, help: 'Se muestra bajo el nombre en el menú y en el inicio de sesión.' }),
+      F('emp_whatsapp', 'WhatsApp', 'text', {
+        max: 20, list: true, placeholder: '+56 9 1234 5678',
+        help: 'Número para los botones de cotizar en la página web.',
+      }),
+      F('emp_horario', 'Horario de atención', 'text', { max: 150, list: true, placeholder: 'Lunes a viernes 9:00 a 18:00' }),
+      F('emp_direccion', 'Dirección', 'text', { max: 150, list: true, full: true, placeholder: 'Calle 123, Iquique' }),
+      F('emp_slogan', 'Slogan', 'text', { max: 150, list: true, full: true, help: 'Se muestra bajo el nombre en el menú, el inicio de sesión y la página web.' }),
+      F('emp_web_precios', 'Mostrar precios en la web', 'bool', {
+        default: false, list: true, full: true, help: 'Si está desactivado, el catálogo público invita a cotizar sin mostrar precios.',
+      }),
       F('emp_url_img', 'URL del logo', 'url', {
         max: 500, list: true, full: true, placeholder: 'https://…/logo.png',
         help: 'Enlace público a una imagen (PNG, JPG, SVG o WEBP). Idealmente cuadrada.',
